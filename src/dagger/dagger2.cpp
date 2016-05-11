@@ -3,9 +3,7 @@
 #include "Splitter.h"
 #include "UTokenizer.h"
 #include "Viterbi3.h"
-#ifdef LIBUV_FOUND
-#include "UvPrefork.h"
-#endif
+#include "TCPFork.h"
 
 
 
@@ -54,9 +52,7 @@ public:
 };
 
 class DaggerPOS : public NLP
-#ifdef LIBUV_FOUND
                   , public Annotator
-#endif
 {
 public:
     Vocab3 observation_set;
@@ -84,12 +80,10 @@ public:
         orderid = observation_set.Add(LString("ORDER"));
 
     }
-#ifdef LIBUV_FOUND
     virtual void annotate(char* st,size_t sz,ostream& result){
         LString line(st,sz);
         annotate_line(line,result);
     }
-#endif
     virtual Vocab3& get_state_set() {
         return state_set;
     }
@@ -347,11 +341,9 @@ int main(int argc, char **argv) {
             cout << endl;
         }
     }
-#ifdef LIBUV_FOUND
     else if (porta.isValid){
-        return TCPForking::listen(porta.value,&dag);
+        return TCPFork::start(&dag,porta.value);
     }
-#endif
     // Klasifikacia zo standardneho vstupu
     else if (!evala.isValid && !corpusa.isValid) {
         LineTokenizer lt(cin);

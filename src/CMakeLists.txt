@@ -5,7 +5,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
-find_package(LibUV)
 
 # Add a top-level "tags" target which includes all files in both
 # the build and source versions of src/*.

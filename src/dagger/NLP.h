@@ -162,6 +162,10 @@ public:
     virtual Vocab3& get_observation_set()  =0;
 	
 	virtual void annotate_line(LString line,ostream& result){
+        if (line.size() == 0){
+            result << line << endl;
+            return;
+        }
         if (line.size() > 4 && ((line[0] == 'i' && line[1] == '\t') || (line == "--endtext"))){
             result << line << endl;
             return;
@@ -202,6 +206,7 @@ public:
 				result << " ";
 			}
 		}
+        result << endl;
 	}
 	int confusion(CorpusReader2& cr,NgramCounter& ng,bool skip_default,size_t startskip,size_t endskip){
         size_t oov = 0;
