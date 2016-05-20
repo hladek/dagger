@@ -68,81 +68,50 @@ class TCPFork {
             vector<char> msg;
             vector<char> buf(2048);
             deque<string> out;
-            int written = 0;
+            bool isclosing  =0;
             while(1){
-                tv.tv_sec = 0;
-                tv.tv_usec = 500000;
+                if (!isclosing){
 #ifndef NDEBUG
-                cout << "Listening write" << endl;
+                    cout << "Listening read " << endl;
 #endif
-                res = select(newsock + 1, 0, &writefds, NULL, &tv);
-                if (res < 0){
-#ifndef NDEBUG
-                    cout << "Select error or timeout" << res << endl;
-#endif
-                    break;
-                }
-                if (out.size() > 0 && FD_ISSET(newsock, &writefds)){
-                    assert(written < (int)out.back().size());
-                    res = send(newsock,out.back().data() + written ,(ssize_t)out.back().size() - written,0);
-                    if (res < 0){
-
-#ifndef NDEBUG
-                        cout << "Write error " << res << endl;
-#endif
-                        break;
-                    }
-                    else{
-
-#ifndef NDEBUG
-                        cout << "Written " << res<< endl;
-#endif
-                        written += res;
-                        assert(written <= (int)out.back().size());
-                        if (written == (int)out.back().size()){
-                            out.pop_back();
-                            written = 0;
-                        }
-                    }
-
-                }
-#ifndef NDEBUG
-                cout << "Listening read " << endl;
-#endif
-                tv.tv_sec = 0;
-                tv.tv_usec = 5000000;
-                res = select(newsock + 1, &readfds, 0, NULL, &tv);
-                if (res <= 0){
-#ifndef NDEBUG
-                    cout << "Select error or timeout " << res  << endl;
-#endif
-                    break;
-                }
-                if (FD_ISSET(newsock, &readfds)){
-                    res = recv(newsock,buf.data(),buf.size(),0);
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 5000000;
+                    res = select(newsock + 1, &readfds, 0, NULL, &tv);
                     if (res <= 0){
-
 #ifndef NDEBUG
-                        cout << "Read error " << res << endl;
+                        cout << "Select error or timeout " << res  << endl;
 #endif
                         break;
                     }
-                    else{
+                    if (FD_ISSET(newsock, &readfds)){
+                        int shouldread = 0;
+                        res = recv(newsock,&shouldread,4,0);
+                        if (res <= 0){
 
 #ifndef NDEBUG
-                        cout << "Read " << res << endl;
+                            cout << "Read error" << res << endl;
 #endif
-                        stringstream os;
-                        for (size_t i = 0; i < (size_t)res; i++){
-                            if (buf[i] != '\n'){
-                                msg.push_back(buf[i]);
-                            }
-                            else{
-                                annot->annotate((char*)msg.data(),msg.size(),os);
-                                msg.clear();
-                            }
+                            break;
                         }
-                        if (os.str().size() > 0) {
+                        if (shouldread == 0){
+                            isclosing = true;
+                        }
+                        else {
+                            buf.resize(shouldread);
+                            res = recv(newsock,buf.data(),buf.size(),0);
+                            if (res <= 0){
+
+#ifndef NDEBUG
+                                cout << "Read error " << res << endl;
+#endif
+                                break;
+                            }
+
+#ifndef NDEBUG
+                            cout << "Read " << res << endl;
+#endif
+                            stringstream os;
+                            annot->annotate((char*)buf.data(),buf.size(),os);
                             out.push_front(os.str());
 #ifndef NDEBUG
                             cout << "Processed " << out.front().size() << endl;
@@ -151,6 +120,51 @@ class TCPFork {
                         }
                     }
                 }
+                if (out.size() > 0){
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 50;
+#ifndef NDEBUG
+                    cout << "Listening write" << endl;
+#endif
+                    res = select(newsock + 1, 0, &writefds, NULL, &tv);
+                    if (res < 0){
+#ifndef NDEBUG
+                        cout << "Select error " << res << endl;
+#endif
+                        break;
+                    }
+                    if (FD_ISSET(newsock, &writefds)){
+                        int wsz = (int)out.back().size();
+                        res = send(newsock,&wsz ,4,0);
+                        if (res < 0){
+
+#ifndef NDEBUG
+                            cout << "Write error " << res << endl;
+#endif
+                            break;
+                        }
+                        res = send(newsock,out.back().data(),(ssize_t)out.back().size(),0);
+                        if (res < 0){
+
+#ifndef NDEBUG
+                            cout << "Write error " << res << endl;
+#endif
+                            break;
+                        }
+
+#ifndef NDEBUG
+                        cout << "Written " << res<< endl;
+#endif
+                        out.pop_back();
+                    }
+                }
+                if (isclosing && out.size() == 0){
+#ifndef NDEBUG
+                        cout << "All sent, quit" << endl;
+#endif
+
+                    break;
+                }
             }
             close(newsock);
 
@@ -158,6 +172,7 @@ class TCPFork {
             cout << "Close" << endl;
 #endif
         }
+
 
         static int start(Annotator* anot,int port)
         {
