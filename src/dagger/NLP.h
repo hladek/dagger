@@ -152,61 +152,60 @@ public:
         }
         return features;
     }
-    
     virtual vector<int> predict(const Features& feats) {
         abort();
         return vector<int>();
     }
-    
     virtual Vocab3& get_state_set()  =0 ;
     virtual Vocab3& get_observation_set()  =0;
-    
-    virtual void annotate_line(LString line,ostream& result){
-        if (line.size() == 0){
-            result << line << endl;
-            return;
-        }
-        if (line.size() > 4 && ((line[0] == 'i' && line[1] == '\t') || (line == "--endtext"))){
-            result << line << endl;
-            return;
-        }
-        Tokenizer tok(line,' ');
-        vector<LString> obs;
-        vector<LString> annots;
-        // Skip annotations after hline
-        while (tok.next()){
-            Tokenizer hl(tok.token(),'|');
-            bool r = hl.next();
-            if (r && hl.token().size() > 0 ){
-                obs.push_back(hl.token());
-                int wordsize = hl.token().size();
-                LString anot;
-                if (hl.next()){
-                    anot = LString(tok.token());
-                    anot = anot.lstrip(wordsize + 1);
-                }
-                annots.push_back(anot);
-            
+    /**
+     *Split cunk into lines and annotate each line
+     */
+    virtual void annotate_chunk(LString chunk,ostream& result){
+        Tokenizer tok2(chunk,'\n');
+        while (tok2.next()){
+            LString line = tok2.token();
+            if (line.size() > 4 && ((line[0] == 'i' && line[1] == '\t') || (line == "--endtext"))){
+                result << line << endl;
+                return;
             }
-        }
-        if (obs.size() > 0){
-            Features feats = prepare(obs);
-            vector<int> res = predict(feats);
-            assert(res.size() == obs.size());
-            for (size_t i = 0; i < obs.size(); i++){
-                LString word = obs[i];
-                result << word;
-                if (annots[i].size() > 0){
+            Tokenizer tok(line,' ');
+            vector<LString> obs;
+            vector<LString> annots;
+            // Skip annotations after hline
+            while (tok.next()){
+                Tokenizer hl(tok.token(),'|');
+                bool r = hl.next();
+                if (r && hl.token().size() > 0 ){
+                    obs.push_back(hl.token());
+                    int wordsize = hl.token().size();
+                    LString anot;
+                    if (hl.next()){
+                        anot = LString(tok.token());
+                        anot = anot.lstrip(wordsize + 1);
+                    }
+                    annots.push_back(anot);
+                }
+            }
+            if (obs.size() > 0){
+                Features feats = prepare(obs);
+                vector<int> res = predict(feats);
+                assert(res.size() == obs.size());
+                for (size_t i = 0; i < obs.size(); i++){
+                    LString word = obs[i];
+                    result << word;
+                    if (annots[i].size() > 0){
+                        result << "|";
+                        result << annots[i];
+                    }
                     result << "|";
-                    result << annots[i];
+                    LString state= get_state_set().Get(res[i]);
+                    result << state;
+                    result << " ";
                 }
-                result << "|";
-                LString state= get_state_set().Get(res[i]);
-                result << state;
-                result << " ";
             }
+            result << endl;
         }
-        result << endl;
     }
     int confusion(CorpusReader2& cr,NgramCounter& ng,bool skip_default,size_t startskip,size_t endskip){
         size_t oov = 0;

@@ -82,7 +82,7 @@ public:
     }
     virtual void annotate(char* st,size_t sz,ostream& result){
         LString line(st,sz);
-        annotate_line(line,result);
+        annotate_chunk(line,result);
     }
     virtual Vocab3& get_state_set() {
         return state_set;
@@ -190,7 +190,6 @@ public:
         while (it.next()){
             double val = it.double_value()[0];
 
-            //cout << it.key()[0] <<  " " << it.key()[1] << endl;;
             if (val < 5){
                 k[0] = splitter.get_class(it.key()[0]);
                 if (k[0] >= 0) {
@@ -337,7 +336,7 @@ int main(int argc, char **argv) {
         ifstream ifs(filea.arg.start());
         LineTokenizer lt(ifs);
         while(lt.next()){
-            dag.annotate_line(lt.token(),cout);
+            dag.annotate_chunk(lt.token(),cout);
             cout << endl;
         }
     }
@@ -348,7 +347,7 @@ int main(int argc, char **argv) {
     else if (!evala.isValid && !corpusa.isValid) {
         LineTokenizer lt(cin);
         while(lt.next()){
-            dag.annotate_line(lt.token(),cout);
+            dag.annotate_chunk(lt.token(),cout);
             cout << endl;
         }
     }
