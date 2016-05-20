@@ -167,7 +167,7 @@ public:
             LString line = tok2.token();
             if (line.size() > 4 && ((line[0] == 'i' && line[1] == '\t') || (line == "--endtext"))){
                 result << line << endl;
-                return;
+                continue;
             }
             Tokenizer tok(line,' ');
             vector<LString> obs;
