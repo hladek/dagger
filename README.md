@@ -1,6 +1,6 @@
 # dagger
 
-Slovak morphological analysys and part-of-speech tagger
+Slovak morphological analysis and part-of-speech tagger
 
 # Features
 
@@ -13,7 +13,6 @@ Slovak morphological analysys and part-of-speech tagger
   - cmake
   - C++ compiler
   - lemonstring library
-  - libuv for TCP server (optional)
 
 # Installation
 
